@@ -3,7 +3,7 @@ import json
 import re
 import time
 import urllib.parse
-from openai import OpenAI
+from groq import Groq
 import streamlit.components.v1 as components
 
 # Page configuration
