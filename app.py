@@ -10,20 +10,19 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="Moonshadow Caption Generator", page_icon="🌙", layout="centered")
 
 st.title("🌙 Moonshadow X Caption Generator")
-st.write("Generate high-engagement, fandom-style posts formatted for X (Twitter).")
+st.write("Generate high-engagement, fandom-style posts formatted for X (Twitter) using transcript or dialogue analysis.")
 
-# 1. SECURITY: Load API key silently from Streamlit Secrets
+# 1. SECURITY: Load API key safely from Streamlit Secrets
 api_key = st.secrets.get("GROQ_API_KEY", "")
-
 
 if not api_key:
     st.error("⚠️ System Configuration Error: Missing `GROQ_API_KEY` in Streamlit Secrets. Please add it to Settings -> Secrets.")
     st.stop()
 
 try:
-    client = OpenAI(api_key=api_key.strip())
+    client = Groq(api_key=api_key.strip())
 except Exception as e:
-    st.error(f"Failed to configure API client: {str(e)}")
+    st.error(f"Failed to configure Groq client: {str(e)}")
     st.stop()
 
 # 2. RATE LIMITING: Track user actions in session state
@@ -32,9 +31,9 @@ if "last_generation_time" not in st.session_state:
 
 # --- USER INPUTS ---
 transcript_input = st.text_area(
-    "Paste Transcript / Video Quotes / Scene Notes", 
+    "Paste Transcript / Video Quotes / SRT Content / Scene Notes", 
     height=180, 
-    placeholder="Paste transcript or key episode moments here..."
+    placeholder="Paste transcript, SRT lines, or key dialogue moments here..."
 )
 
 col1, col2 = st.columns(2)
@@ -133,18 +132,17 @@ if st.button("🔥 Generate 10 X Captions", type="primary"):
         wait_time = int(cooldown_seconds - (current_time - st.session_state.last_generation_time))
         st.warning(f"⏳ Please wait {wait_time} seconds before generating again.")
     elif not transcript_input.strip():
-        st.warning("Please paste transcript text or episode context.")
+        st.warning("Please paste transcript text, SRT lines, or episode context.")
     else:
         st.session_state.last_generation_time = current_time
         
-        with st.spinner("Crafting 10 tweets..."):
+        with st.spinner("Generating fresh posts with Groq (openai/gpt-oss-120b)..."):
             try:
                 clean_context = transcript_input[:5000].strip()
 
-                # FANDOM-SPECIFIC & PROMPT INJECTION GUARDED PROMPT
                 prompt = f"""
                 You are a native English-speaking Stan Twitter / X power user and superfan of the series 'Moonshadow'. 
-                Write EXACTLY 10 short, highly punchy, human posts based on the provided episode transcript/context.
+                Write EXACTLY 10 short, highly punchy, human posts based on the provided episode transcript, dialog, or SRT content.
 
                 STYLE GUIDELINES:
                 - SOUND LIKE A REAL HUMAN FANDOM ACCOUNT: Use natural, conversational English (e.g., lowercase for emphasis, casual punctuation, natural reactions like 'ok but', 'the way she', 'i am not okay', 'NEED TO TALK ABOUT THIS').
@@ -160,18 +158,18 @@ if st.button("🔥 Generate 10 X Captions", type="primary"):
 
                 Output MUST be strictly a valid JSON array of EXACTLY 10 strings (e.g. ["Post 1", "Post 2", ...]). Return ONLY the raw JSON array. Do not include markdown code blocks or extra text.
 
-                Episode Context / Transcript:
+                Episode Context / Transcript / SRT Content:
                 {clean_context}
                 """
 
-                response = client.chat.completions.create(
+                chat_completion = client.chat.completions.create(
                     model="openai/gpt-oss-120b",
-                    messages=[{"role": "user", "content": prompt}]
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.8
                 )
-                raw_content = response.choices[0].message.content.strip()
+                raw_content = chat_completion.choices[0].message.content.strip()
 
-                # Clean JSON string
-                clean_json = re.sub(r'^```json\s*|\s*```$', '', raw_content, flags=re.MULTILINE)
+                clean_json = re.sub(r'^```json\s*|\s*```$', '', raw_content, flags=re.MULTILINE).strip()
                 captions = json.loads(clean_json)
 
                 st.markdown("---")
