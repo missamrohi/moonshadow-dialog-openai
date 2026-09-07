@@ -13,10 +13,11 @@ st.title("🌙 Moonshadow X Caption Generator")
 st.write("Generate high-engagement, fandom-style posts formatted for X (Twitter).")
 
 # 1. SECURITY: Load API key silently from Streamlit Secrets
-api_key = st.secrets.get("GROK_API_KEY", "")
+api_key = st.secrets.get("GROQ_API_KEY", "")
+
 
 if not api_key:
-    st.error("⚠️ System Configuration Error: Missing `GROK_API_KEY` in Streamlit Secrets. Please add it to Settings -> Secrets.")
+    st.error("⚠️ System Configuration Error: Missing `GROQ_API_KEY` in Streamlit Secrets. Please add it to Settings -> Secrets.")
     st.stop()
 
 try:
